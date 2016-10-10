@@ -61,6 +61,8 @@ object Dependencies {
 
     // ssl-config
     val sslConfigCore = "com.typesafe"                %% "ssl-config-core"             % sslConfigVersion // ApacheV2
+    
+    val mapdb         = "org.mapdb"                   % "mapdb"                        % "3.0.2"       // ApacheV2
 
     // For akka-http-testkit-java
     val junit       = "junit"                         % "junit"                        % junitVersion  // Common Public License 1.0
@@ -142,7 +144,7 @@ object Dependencies {
 
   val clusterMetrics = l ++= Seq(Provided.sigarLoader, Test.slf4jJul, Test.slf4jLog4j, Test.logback, Test.mockito)
 
-  val distributedData = l ++= Seq(Test.junit, Test.scalatest.value)
+  val distributedData = l ++= Seq(mapdb, Test.junit, Test.scalatest.value)
 
   val slf4j = l ++= Seq(slf4jApi, Test.logback)
 

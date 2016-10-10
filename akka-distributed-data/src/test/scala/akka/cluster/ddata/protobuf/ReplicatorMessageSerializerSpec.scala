@@ -29,15 +29,16 @@ class ReplicatorMessageSerializerSpec extends TestKit(ActorSystem(
   ConfigFactory.parseString("""
     akka.actor.provider=cluster
     akka.remote.netty.tcp.port=0
+    akka.remote.artery.canonical.port = 0
     """))) with WordSpecLike with Matchers with BeforeAndAfterAll {
 
   val serializer = new ReplicatorMessageSerializer(system.asInstanceOf[ExtendedActorSystem])
 
   val Protocol = if (RARP(system).provider.remoteSettings.Artery.Enabled) "akka" else "akka.tcp"
 
-  val address1 = UniqueAddress(Address(Protocol, system.name, "some.host.org", 4711), 1)
-  val address2 = UniqueAddress(Address(Protocol, system.name, "other.host.org", 4711), 2)
-  val address3 = UniqueAddress(Address(Protocol, system.name, "some.host.org", 4712), 3)
+  val address1 = UniqueAddress(Address(Protocol, system.name, "some.host.org", 4711), 1L)
+  val address2 = UniqueAddress(Address(Protocol, system.name, "other.host.org", 4711), 2L)
+  val address3 = UniqueAddress(Address(Protocol, system.name, "some.host.org", 4712), 3L)
 
   val keyA = GSetKey[String]("A")
 
@@ -72,6 +73,7 @@ class ReplicatorMessageSerializerSpec extends TestKit(ActorSystem(
         address3 → PruningState(address2, PruningInitialized(Set(address1.address))))))
       checkSerialization(Write("A", DataEnvelope(data1)))
       checkSerialization(WriteAck)
+      checkSerialization(WriteNack)
       checkSerialization(Read("A"))
       checkSerialization(ReadResult(Some(DataEnvelope(data1))))
       checkSerialization(ReadResult(None))

@@ -448,6 +448,49 @@ look like for the ``TwoPhaseSet``:
 
 .. includecode:: code/docs/ddata/japi/protobuf/TwoPhaseSetSerializer2.java#serializer
   
+Durable Storage
+---------------
+
+By default the data is only kept in memory. It is redundant since it is replicated to other nodes 
+in the cluster, but if you stop all nodes the data is lost, unless you have saved it 
+elsewhere. 
+
+Entries can be configured to be durable, i.e. stored on local disk on each node. The stored data will be loaded
+next time the replicator is started, i.e. when actor system is restarted. The keys of the durable entries
+are configured with::
+
+  akka.cluster.distributed-data.durable.keys = ["a", "b", "durable*"]
+
+Prefix matching is supported by using ``*`` at the end of a key.
+
+`MapDB <http://www.mapdb.org/>`_ is the default storage implementation. It is possible to replace that
+with another implementation by implementing the actor protocol described in ``akka.cluster.ddata.DurableStore``. 
+
+The location of the files for the data is configured with::
+
+  # MapDB file. There are two options:
+  # 1. A relative or absolute path ending with ".ddata": this file will be used.
+  # 2. A relative or absolute path to a directory. The file in this directory
+  #    will have a name that contains the name of the ActorSystem and its 
+  #    remote port.
+  akka.cluster.distributed-data.mapdb.file = "ddata"
+
+Making the data durable has of course a performance cost. Changes are by default accumulated during
+a short time period before it is committed to MapDB and flushed to disk. This kind of write behind gives
+good performance, but it means that there is risk of loosing the last writes if the JVM crashes before 
+committing. That is a small risk since the data is typically replicated to other nodes immediately 
+according to the given ``WriteConsistency``. The commit interval is configured with::
+
+  akka.cluster.distributed-data.mapdb.commit-interval = 200 ms
+
+You can set this property to ``off`` to commit each write immediately, i.e. it has been flushed
+to disk before the ``UpdateSuccess`` reply is sent. This is rather slow but the safe option if 
+the data must never be lost silently. 
+
+Note that if when using ``commit-interval=off`` you should be prepared to receive ``WriteFailure`` 
+as reply to an ``Update`` of a durable entry if the data could not be stored for some reason. 
+When using time based commits such errors will only be logged and ``UpdateSuccess`` will still 
+be the reply to the ``Update``.
 
 CRDT Garbage
 ------------
@@ -493,11 +536,6 @@ if you add one element to a Set with 100 existing elements, all 101 elements are
 other nodes. This means that you cannot have too large data entries, because then the remote message
 size will be too large. We might be able to make this more efficient by implementing
 `Efficient State-based CRDTs by Delta-Mutation <http://gsd.di.uminho.pt/members/cbm/ps/delta-crdt-draft16may2014.pdf>`_.
-
-The data is only kept in memory. It is redundant since it is replicated to other nodes 
-in the cluster, but if you stop all nodes the data is lost, unless you have saved it 
-elsewhere. Making the data durable is a possible future feature, but even if we implement that
-it is not intended to be a full featured database.
 
 Learn More about CRDTs
 ======================

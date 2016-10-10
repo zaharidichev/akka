@@ -167,6 +167,7 @@ class ReplicatorMessageSerializer(val system: ExtendedActorSystem)
   val ReadResultManifest = "L"
   val StatusManifest = "M"
   val GossipManifest = "N"
+  val WriteNackManifest = "O"
 
   private val fromBinaryMap = collection.immutable.HashMap[String, Array[Byte] ⇒ AnyRef](
     GetManifest → getFromBinary,
@@ -182,7 +183,8 @@ class ReplicatorMessageSerializer(val system: ExtendedActorSystem)
     ReadManifest → readFromBinary,
     ReadResultManifest → readResultFromBinary,
     StatusManifest → statusFromBinary,
-    GossipManifest → gossipFromBinary)
+    GossipManifest → gossipFromBinary,
+    WriteNackManifest → (_ ⇒ WriteNack))
 
   override def manifest(obj: AnyRef): String = obj match {
     case _: DataEnvelope   ⇒ DataEnvelopeManifest
@@ -199,6 +201,7 @@ class ReplicatorMessageSerializer(val system: ExtendedActorSystem)
     case _: Subscribe[_]   ⇒ SubscribeManifest
     case _: Unsubscribe[_] ⇒ UnsubscribeManifest
     case _: Gossip         ⇒ GossipManifest
+    case WriteNack         ⇒ WriteNackManifest
     case _ ⇒
       throw new IllegalArgumentException(s"Can't serialize object of type ${obj.getClass} in [${getClass.getName}]")
   }
@@ -218,6 +221,7 @@ class ReplicatorMessageSerializer(val system: ExtendedActorSystem)
     case m: Subscribe[_]   ⇒ subscribeToProto(m).toByteArray
     case m: Unsubscribe[_] ⇒ unsubscribeToProto(m).toByteArray
     case m: Gossip         ⇒ compress(gossipToProto(m))
+    case WriteNack         ⇒ dm.Empty.getDefaultInstance.toByteArray
     case _ ⇒
       throw new IllegalArgumentException(s"Can't serialize object of type ${obj.getClass} in [${getClass.getName}]")
   }

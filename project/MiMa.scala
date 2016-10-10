@@ -1021,7 +1021,12 @@ object MiMa extends AutoPlugin {
         ProblemFilters.exclude[ReversedMissingMethodProblem]("akka.stream.Materializer.materialize"),
         
         // #21775 - overrode ByteString.stringPrefix and made it final
-        ProblemFilters.exclude[FinalMethodProblem]("akka.util.ByteString.stringPrefix")
+        ProblemFilters.exclude[FinalMethodProblem]("akka.util.ByteString.stringPrefix"),
+        
+        // #21645 durable distributed data
+        ProblemFilters.exclude[DirectMissingMethodProblem]("akka.cluster.ddata.WriteAggregator.props"),
+        ProblemFilters.exclude[DirectMissingMethodProblem]("akka.cluster.ddata.WriteAggregator.this"),
+        ProblemFilters.exclude[IncompatibleResultTypeProblem]("akka.cluster.ddata.Replicator.write")
       )
     )
   }
