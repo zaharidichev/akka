@@ -25,6 +25,7 @@ object DurableDataSpec extends MultiNodeConfig {
     akka.log-dead-letters-during-shutdown = off
     akka.cluster.distributed-data.durable.keys = ["durable*"]
     akka.cluster.distributed-data.durable.mapdb.file = target/ddata
+    akka.test.single-expect-default = 5s
     """))
 
   testTransport(on = true)
@@ -42,7 +43,7 @@ class DurableDataSpec extends MultiNodeSpec(DurableDataSpec) with STMultiNodeSpe
 
   implicit val cluster = Cluster(system)
 
-  val timeout = 2.seconds.dilated
+  val timeout = 5.seconds.dilated
   val writeTwo = WriteTo(2, timeout)
   val readTwo = ReadFrom(2, timeout)
 

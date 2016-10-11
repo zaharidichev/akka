@@ -4,6 +4,7 @@
 package akka.cluster.ddata
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConverters._
 import scala.collection.breakOut
@@ -166,8 +167,8 @@ final class MapDbDurableStore(config: Config) extends Actor with ActorLogging {
           MapdbReplicatedDataSerializer.callFromPut.set(null)
         db.commit()
         if (log.isDebugEnabled)
-          log.debug("store and commit of [{}] entries took [{} μs]", uncommitted.size,
-            (System.nanoTime - t0) / 1000 / 1000)
+          log.debug("store and commit of [{}] entries took [{} ms]", uncommitted.size,
+            TimeUnit.NANOSECONDS.toMillis(System.nanoTime - t0))
       } catch {
         case NonFatal(e) ⇒
           import scala.collection.JavaConverters._
