@@ -456,7 +456,8 @@ in the cluster, but if you stop all nodes the data is lost, unless you have save
 elsewhere. 
 
 Entries can be configured to be durable, i.e. stored on local disk on each node. The stored data will be loaded
-next time the replicator is started, i.e. when actor system is restarted. The keys of the durable entries
+next time the replicator is started, i.e. when actor system is restarted. This means data will survive as 
+long as at least one node from the old cluster takes part in a new cluster. The keys of the durable entries
 are configured with::
 
   akka.cluster.distributed-data.durable.keys = ["a", "b", "durable*"]

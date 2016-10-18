@@ -5,9 +5,12 @@ package akka.cluster.ddata
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.control.NoStackTrace
 
+import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
+import akka.actor.Props
 import akka.cluster.Cluster
 import akka.remote.testconductor.RoleName
 import akka.remote.testkit.MultiNodeConfig
@@ -19,16 +22,41 @@ object DurableDataSpec extends MultiNodeConfig {
   val first = role("first")
   val second = role("second")
 
-  commonConfig(ConfigFactory.parseString("""
+  commonConfig(ConfigFactory.parseString(s"""
     akka.loglevel = INFO
     akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
     akka.log-dead-letters-during-shutdown = off
     akka.cluster.distributed-data.durable.keys = ["durable*"]
-    akka.cluster.distributed-data.durable.mapdb.file = target/ddata
+    akka.cluster.distributed-data.durable.mapdb.file = target/ddata-TestDurableStore-${System.currentTimeMillis}
     akka.test.single-expect-default = 5s
     """))
 
   testTransport(on = true)
+
+  def testDurableStoreProps(failLoad: Boolean = false, failStore: Boolean = false): Props =
+    Props(new TestDurableStore(failLoad, failStore))
+
+  class TestDurableStore(failLoad: Boolean, failStore: Boolean) extends Actor {
+    import DurableStore._
+    def receive = {
+      case Load ⇒
+        if (failLoad)
+          throw new LoadFailed("failed to load durable distributed-data") with NoStackTrace
+        else
+          sender() ! LoadCompleted
+
+      case Store(key, data, reply) ⇒
+        if (failStore) reply match {
+          case Some(StoreReply(_, failureMsg, replyTo)) ⇒ replyTo ! failureMsg
+          case None                                     ⇒
+        }
+        else reply match {
+          case Some(StoreReply(successMsg, _, replyTo)) ⇒ replyTo ! successMsg
+          case None                                     ⇒
+        }
+    }
+
+  }
 
 }
 
@@ -124,8 +152,10 @@ class DurableDataSpec extends MultiNodeSpec(DurableDataSpec) with STMultiNodeSpe
       }
     }
 
-    r ! Update(KeyA, GCounter(), writeTwo)(_ + 1)
-    expectMsg(UpdateSuccess(KeyA, None))
+    within(10.seconds) {
+      r ! Update(KeyA, GCounter(), writeTwo)(_ + 1)
+      expectMsg(UpdateSuccess(KeyA, None))
+    }
 
     r ! Update(KeyC, ORSet.empty[String], writeTwo)(_ + myself.name)
     expectMsg(UpdateSuccess(KeyC, None))
@@ -264,8 +294,32 @@ class DurableDataSpec extends MultiNodeSpec(DurableDataSpec) with STMultiNodeSpe
         Await.ready(sys1.terminate(), 10.seconds)
       }
 
-      enterBarrierAfterTestStep()
     }
+    enterBarrierAfterTestStep()
+  }
+
+  "stop Replicator if Load fails" in {
+    runOn(first) {
+      val r = system.actorOf(
+        Replicator.props(
+          ReplicatorSettings(system).withDurableStoreProps(testDurableStoreProps(failLoad = true))),
+        "replicator-" + testStepCounter)
+      watch(r)
+      expectTerminated(r)
+    }
+    enterBarrierAfterTestStep()
+  }
+
+  "reply with StoreFailure if store fails" in {
+    runOn(first) {
+      val r = system.actorOf(
+        Replicator.props(
+          ReplicatorSettings(system).withDurableStoreProps(testDurableStoreProps(failStore = true))),
+        "replicator-" + testStepCounter)
+      r ! Update(KeyA, GCounter(), WriteLocal, request = Some("a"))(_ + 1)
+      expectMsg(StoreFailure(KeyA, Some("a")))
+    }
+    enterBarrierAfterTestStep()
   }
 
 }

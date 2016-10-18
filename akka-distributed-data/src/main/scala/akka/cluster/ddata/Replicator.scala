@@ -41,6 +41,9 @@ import akka.cluster.ddata.Key.KeyR
 import java.util.Optional
 import akka.cluster.ddata.DurableStore._
 import akka.actor.ExtendedActorSystem
+import akka.actor.SupervisorStrategy
+import akka.actor.OneForOneStrategy
+import akka.actor.ActorInitializationException
 
 object ReplicatorSettings {
 
@@ -817,7 +820,7 @@ final class Replicator(settings: ReplicatorSettings) extends Actor with ActorLog
           val clazz = context.system.asInstanceOf[ExtendedActorSystem].dynamicAccess.getClassFor[Actor](s).get
           Props(clazz, c).withDispatcher(c.getString("use-dispatcher"))
       }
-      context.actorOf(props.withDeploy(Deploy.local), "durableStore")
+      context.watch(context.actorOf(props.withDeploy(Deploy.local), "durableStore"))
     } else
       context.system.deadLetters // not used
 
@@ -870,6 +873,17 @@ final class Replicator(settings: ReplicatorSettings) extends Actor with ActorLog
   }
 
   def matchingRole(m: Member): Boolean = role.forall(m.hasRole)
+
+  override val supervisorStrategy = {
+    def fromDurableStore: Boolean = sender() == durableStore && sender() != context.system.deadLetters
+    OneForOneStrategy()(
+      ({
+        case e @ (_: DurableStore.LoadFailed | _: ActorInitializationException) if fromDurableStore ⇒
+          log.error(e, "Stopping distributed-data Replicator due to load or startup failure in durable store")
+          context.stop(self)
+          SupervisorStrategy.Stop
+      }: SupervisorStrategy.Decider).orElse(SupervisorStrategy.defaultDecider))
+  }
 
   def receive =
     if (hasDurableKeys) load.orElse(normalReceive)
@@ -1247,14 +1261,19 @@ final class Replicator(settings: ReplicatorSettings) extends Actor with ActorLog
       (newSubscribers.exists { case (k, s) ⇒ s.contains(subscriber) })
 
   def receiveTerminated(ref: ActorRef): Unit = {
-    val keys1 = subscribers.collect { case (k, s) if s.contains(ref) ⇒ k }
-    keys1.foreach { key ⇒ subscribers.removeBinding(key, ref) }
-    val keys2 = newSubscribers.collect { case (k, s) if s.contains(ref) ⇒ k }
-    keys2.foreach { key ⇒ newSubscribers.removeBinding(key, ref) }
+    if (ref == durableStore) {
+      log.error("Stopping distributed-data Replicator because durable store terminated")
+      context.stop(self)
+    } else {
+      val keys1 = subscribers.collect { case (k, s) if s.contains(ref) ⇒ k }
+      keys1.foreach { key ⇒ subscribers.removeBinding(key, ref) }
+      val keys2 = newSubscribers.collect { case (k, s) if s.contains(ref) ⇒ k }
+      keys2.foreach { key ⇒ newSubscribers.removeBinding(key, ref) }
 
-    (keys1 ++ keys2).foreach { key ⇒
-      if (!subscribers.contains(key) && !newSubscribers.contains(key))
-        subscriptionKeys -= key
+      (keys1 ++ keys2).foreach { key ⇒
+        if (!subscribers.contains(key) && !newSubscribers.contains(key))
+          subscriptionKeys -= key
+      }
     }
   }
 

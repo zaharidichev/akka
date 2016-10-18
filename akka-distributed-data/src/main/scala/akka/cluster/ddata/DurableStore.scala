@@ -39,6 +39,9 @@ import org.mapdb.Serializer
  * `Load` message to it. It must then reply with 0 or more `LoadData` messages
  * followed by one `LoadCompleted` message to the `sender` (the `Replicator`).
  *
+ * If the `Load` fails it can throw `LoadFailed` and the `Replicator` supervisor
+ * will stop itself and the durable store.
+ *
  * When the `Replicator` needs to store a value it sends a `Store` message
  * to the durable store actor, which must then reply with the `successMsg` or
  * `failureMsg` to the `replyTo`.
@@ -50,6 +53,9 @@ object DurableStore {
   case object Load
   final case class LoadData(data: Map[String, ReplicatedData])
   case object LoadCompleted
+  class LoadFailed(message: String, cause: Throwable) extends RuntimeException(message) {
+    def this(message: String) = this(message, null)
+  }
 }
 
 object MapDbDurableStore {
@@ -99,6 +105,12 @@ final class MapDbDurableStore(config: Config) extends Actor with ActorLogging {
 
   val uncommitted = new java.util.HashMap[String, ReplicatedData]
 
+  override def postRestart(reason: Throwable): Unit = {
+    super.postRestart(reason)
+    // Load is only done on first start, not on restart
+    context.become(active)
+  }
+
   override def postStop(): Unit = {
     super.postStop()
     commit()
@@ -116,12 +128,11 @@ final class MapDbDurableStore(config: Config) extends Actor with ActorLogging {
         if (loadData.data.nonEmpty)
           sender() ! loadData
         sender() ! LoadCompleted
+        context.become(active)
       } catch {
         case NonFatal(e) ⇒
-          log.error(e, "failed to load data")
-          sender() ! LoadCompleted
-      } finally
-        context.become(active)
+          throw new LoadFailed("failed to load durable distributed-data", e)
+      }
   }
 
   def active: Receive = {
@@ -185,6 +196,7 @@ final class MapDbDurableStore(config: Config) extends Actor with ActorLogging {
  * INTERNAL API
  */
 private[akka] object MapdbReplicatedDataSerializer {
+  // TODO: Remove this ThreadLocal when https://github.com/jankotek/mapdb/issues/769 has been fixed
   val callFromPut = new ThreadLocal[NotUsedOldValue.type]
 
   object NotUsedOldValue extends ReplicatedData {
