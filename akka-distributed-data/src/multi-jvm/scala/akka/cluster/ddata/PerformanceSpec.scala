@@ -35,8 +35,8 @@ object PerformanceSpec extends MultiNodeConfig {
     akka.cluster.distributed-data.gossip-interval = 1 s
     akka.actor.serialize-messages = off
 
-    akka.cluster.distributed-data.durable.keys = ["*"]
-    akka.cluster.distributed-data.durable.lmdb.dir = target/PerformanceSpec-${System.currentTimeMillis}-ddata
+    #akka.cluster.distributed-data.durable.keys = ["*"]
+    #akka.cluster.distributed-data.durable.lmdb.dir = target/PerformanceSpec-${System.currentTimeMillis}-ddata
     #akka.cluster.distributed-data.durable.lmdb.write-behind-interval = 200ms
     """))
 
