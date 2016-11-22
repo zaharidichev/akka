@@ -15,6 +15,7 @@ object Dependencies {
   lazy val java8CompatVersion = settingKey[String]("The version of scala-java8-compat to use.")
   val junitVersion = "4.12"
   val sslConfigVersion = "0.2.1"
+  val lmdbVersion = "0.4.6"
 
   val Versions = Seq(
     crossScalaVersions := Seq("2.11.8"), // "2.12.0"
@@ -62,7 +63,11 @@ object Dependencies {
     // ssl-config
     val sslConfigCore = "com.typesafe"                %% "ssl-config-core"             % sslConfigVersion // ApacheV2
     
-    val mapdb         = "org.mapdb"                   % "mapdb"                        % "3.0.2"       // ApacheV2
+    val lmdb          = "org.deephacks.lmdbjni"       % "lmdbjni"                      % lmdbVersion      // ApacheV2
+    
+    val lmdbLinux     = "org.deephacks.lmdbjni"       % "lmdbjni-linux64"              % lmdbVersion      // ApacheV2
+    val lmdbOsx       = "org.deephacks.lmdbjni"       % "lmdbjni-osx64"                % lmdbVersion      // ApacheV2
+    val lmdbWin       = "org.deephacks.lmdbjni"       % "lmdbjni-win64"                % lmdbVersion      // ApacheV2
 
     // For akka-http-testkit-java
     val junit       = "junit"                         % "junit"                        % junitVersion  // Common Public License 1.0
@@ -144,7 +149,7 @@ object Dependencies {
 
   val clusterMetrics = l ++= Seq(Provided.sigarLoader, Test.slf4jJul, Test.slf4jLog4j, Test.logback, Test.mockito)
 
-  val distributedData = l ++= Seq(mapdb, Test.junit, Test.scalatest.value)
+  val distributedData = l ++= Seq(lmdb, lmdbOsx, lmdbLinux, lmdbWin, Test.junit, Test.scalatest.value)
 
   val slf4j = l ++= Seq(slf4jApi, Test.logback)
 

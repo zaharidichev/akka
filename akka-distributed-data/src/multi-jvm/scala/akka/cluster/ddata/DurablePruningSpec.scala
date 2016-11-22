@@ -21,12 +21,12 @@ object DurablePruningSpec extends MultiNodeConfig {
   val first = role("first")
   val second = role("second")
 
-  commonConfig(debugConfig(on = false).withFallback(ConfigFactory.parseString("""
+  commonConfig(debugConfig(on = false).withFallback(ConfigFactory.parseString(s"""
     akka.loglevel = INFO
     akka.actor.provider = "cluster"
     akka.log-dead-letters-during-shutdown = off
     akka.cluster.distributed-data.durable.keys = ["*"]
-    akka.cluster.distributed-data.durable.mapdb.file = target/ddata
+    akka.cluster.distributed-data.durable.lmdb.dir = target/DurablePruningSpec-${System.currentTimeMillis}-ddata
     """)))
 
 }
@@ -132,7 +132,6 @@ class DurablePruningSpec extends MultiNodeSpec(DurablePruningSpec) with STMultiN
       }
       enterBarrier("pruned")
 
-      println(s"# START ---------") // FIXME
       // let it become tombstone
       Thread.sleep(5000)
 
@@ -147,19 +146,14 @@ class DurablePruningSpec extends MultiNodeSpec(DurablePruningSpec) with STMultiN
         val probe3 = TestProbe()(sys3)
         Cluster(sys3).join(node(first).address)
 
-        within(5.seconds) {
+        within(10.seconds) {
           awaitAssert {
             replicator3.tell(Get(KeyA, ReadLocal), probe3.ref)
             val counter4 = probe3.expectMsgType[GetSuccess[GCounter]].dataValue
             counter4.value should be(10)
-            counter4.state.size should be(4)
+            counter4.state.size should be(3)
           }
         }
-
-        replicator3.tell(Get(KeyA, ReadAll(timeout)), probe3.ref)
-        val counter5 = probe3.expectMsgType[GetSuccess[GCounter]].dataValue
-        counter5.value should be(10)
-        counter5.state.size should be(3)
       }
 
       enterBarrier("after-1")

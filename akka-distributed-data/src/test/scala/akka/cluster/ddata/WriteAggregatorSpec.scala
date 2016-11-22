@@ -52,11 +52,11 @@ object WriteAggregatorSpec {
   }
 }
 
-class WriteAggregatorSpec extends AkkaSpec("""
+class WriteAggregatorSpec extends AkkaSpec(s"""
       akka.actor.provider = "cluster"
       akka.remote.netty.tcp.port = 0
       akka.remote.artery.canonical.port = 0
-      akka.cluster.distributed-data.durable.mapdb.file = target/ddata
+      akka.cluster.distributed-data.durable.lmdb.dir = target/WriteAggregatorSpec-${System.currentTimeMillis}-ddata
       """)
   with ImplicitSender {
 

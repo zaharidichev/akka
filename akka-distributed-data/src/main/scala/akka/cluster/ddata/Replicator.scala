@@ -858,7 +858,7 @@ final class Replicator(settings: ReplicatorSettings) extends Actor with ActorLog
 
   override def preStart(): Unit = {
     if (hasDurableKeys)
-      durableStore ! Load
+      durableStore ! LoadAll
     val leaderChangedClass = if (role.isDefined) classOf[RoleLeaderChanged] else classOf[LeaderChanged]
     cluster.subscribe(self, initialStateMode = InitialStateAsEvents,
       classOf[MemberEvent], classOf[ReachabilityEvent], leaderChangedClass)
@@ -901,12 +901,14 @@ final class Replicator(settings: ReplicatorSettings) extends Actor with ActorLog
             case None ⇒
           }
       }
-    case LoadCompleted ⇒
+    case LoadAllCompleted ⇒
       context.become(normalReceive)
       self ! FlushChanges
 
     case RemovedNodePruningTick | FlushChanges | GossipTick ⇒
+    // ignore gossip and replication when loading durable data
     case _: Read | _: Write | _: Status | _: Gossip         ⇒
+    // ignore gossip and replication when loading durable data
   }
 
   val normalReceive: Receive = {

@@ -18,7 +18,7 @@ import akka.remote.testkit.MultiNodeSpec
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 
-object DurableDataSpec extends MultiNodeConfig {
+final case class DurableDataSpecConfig(writeBehind: Boolean) extends MultiNodeConfig {
   val first = role("first")
   val second = role("second")
 
@@ -27,23 +27,24 @@ object DurableDataSpec extends MultiNodeConfig {
     akka.actor.provider = "akka.cluster.ClusterActorRefProvider"
     akka.log-dead-letters-during-shutdown = off
     akka.cluster.distributed-data.durable.keys = ["durable*"]
-    akka.cluster.distributed-data.durable.mapdb.file = target/ddata-TestDurableStore-${System.currentTimeMillis}
+    akka.cluster.distributed-data.durable.lmdb.dir = target/DurableDataSpec-${System.currentTimeMillis}-ddata
+    akka.cluster.distributed-data.durable.lmdb.write-behind-interval = ${if (writeBehind) "200ms" else "off"}
     akka.test.single-expect-default = 5s
     """))
+}
 
-  testTransport(on = true)
-
+object DurableDataSpec {
   def testDurableStoreProps(failLoad: Boolean = false, failStore: Boolean = false): Props =
     Props(new TestDurableStore(failLoad, failStore))
 
   class TestDurableStore(failLoad: Boolean, failStore: Boolean) extends Actor {
     import DurableStore._
     def receive = {
-      case Load ⇒
+      case LoadAll ⇒
         if (failLoad)
           throw new LoadFailed("failed to load durable distributed-data") with NoStackTrace
         else
-          sender() ! LoadCompleted
+          sender() ! LoadAllCompleted
 
       case Store(key, data, reply) ⇒
         if (failStore) reply match {
@@ -60,12 +61,17 @@ object DurableDataSpec extends MultiNodeConfig {
 
 }
 
-class DurableDataSpecMultiJvmNode1 extends DurableDataSpec
-class DurableDataSpecMultiJvmNode2 extends DurableDataSpec
+class DurableDataSpecMultiJvmNode1 extends DurableDataSpec(DurableDataSpecConfig(writeBehind = false))
+class DurableDataSpecMultiJvmNode2 extends DurableDataSpec(DurableDataSpecConfig(writeBehind = false))
 
-class DurableDataSpec extends MultiNodeSpec(DurableDataSpec) with STMultiNodeSpec with ImplicitSender {
+class DurableDataWriteBehindSpecMultiJvmNode1 extends DurableDataSpec(DurableDataSpecConfig(writeBehind = true))
+class DurableDataWriteBehindSpecMultiJvmNode2 extends DurableDataSpec(DurableDataSpecConfig(writeBehind = true))
+
+abstract class DurableDataSpec(multiNodeConfig: DurableDataSpecConfig)
+  extends MultiNodeSpec(multiNodeConfig) with STMultiNodeSpec with ImplicitSender {
   import DurableDataSpec._
   import Replicator._
+  import multiNodeConfig._
 
   override def initialParticipants = roles.size
 

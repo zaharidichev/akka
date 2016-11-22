@@ -23,6 +23,7 @@ import akka.util.ByteString
 import akka.cluster.UniqueAddress
 import akka.remote.RARP
 import com.typesafe.config.ConfigFactory
+import akka.cluster.ddata.DurableStore.DurableDataEnvelope
 
 class ReplicatorMessageSerializerSpec extends TestKit(ActorSystem(
   "ReplicatorMessageSerializerSpec",
@@ -48,6 +49,7 @@ class ReplicatorMessageSerializerSpec extends TestKit(ActorSystem(
 
   def checkSerialization(obj: AnyRef): Unit = {
     val blob = serializer.toBinary(obj)
+    println(s"# $obj => ${serializer.manifest(obj)}") // FIXME
     val ref = serializer.fromBinary(blob, serializer.manifest(obj))
     ref should be(obj)
   }
@@ -83,6 +85,7 @@ class ReplicatorMessageSerializerSpec extends TestKit(ActorSystem(
       checkSerialization(Gossip(Map(
         "A" → DataEnvelope(data1),
         "B" → DataEnvelope(GSet() + "b" + "c")), sendBack = true))
+      checkSerialization(new DurableDataEnvelope(data1))
     }
 
   }

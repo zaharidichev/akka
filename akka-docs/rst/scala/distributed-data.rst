@@ -464,34 +464,34 @@ are configured with::
 
 Prefix matching is supported by using ``*`` at the end of a key.
 
-`MapDB <http://www.mapdb.org/>`_ is the default storage implementation. It is possible to replace that
-with another implementation by implementing the actor protocol described in ``akka.cluster.ddata.DurableStore``. 
+`LMDB <https://symas.com/products/lightning-memory-mapped-database/>`_ is the default storage implementation. It is 
+possible to replace that with another implementation by implementing the actor protocol described in 
+``akka.cluster.ddata.DurableStore`` and defining the ``akka.cluster.distributed-data.durable.store-actor-class``
+property for the new implementation. 
 
 The location of the files for the data is configured with::
 
-  # MapDB file. There are two options:
-  # 1. A relative or absolute path ending with ".ddata": this file will be used.
-  # 2. A relative or absolute path to a directory. The file in this directory
-  #    will have a name that contains the name of the ActorSystem and its 
-  #    remote port.
-  akka.cluster.distributed-data.mapdb.file = "ddata"
+  # Directory of LMDB file. There are two options:
+  # 1. A relative or absolute path to a directory that ends with 'ddata'
+  #    the full name of the directory will contain name of the ActorSystem
+  #    and its remote port.
+  # 2. Otherwise the path is used as is, as a relative or absolute path to
+  #    a directory.
+  akka.cluster.distributed-data.durable.lmdb.dir = "ddata"
 
-Making the data durable has of course a performance cost. Changes are by default accumulated during
-a short time period before it is committed to MapDB and flushed to disk. This kind of write behind gives
-good performance, but it means that there is risk of loosing the last writes if the JVM crashes before 
-committing. That is a small risk since the data is typically replicated to other nodes immediately 
-according to the given ``WriteConsistency``. The commit interval is configured with::
+Making the data durable has of course a performance cost. By default, each udpate is flushed
+to disk before the ``UpdateSuccess`` reply is sent. For better performance, but with the risk of loosing 
+the last writes if the JVM crashes, you can enable write behind mode. Changes are then accumulated during
+a time period before it is written to LMDB and flushed to disk. Enabling write behind is especially
+efficient when performing many writes to the same key, because it is only the last value for each key 
+that will be serialized and stored. The risk of loosing writes if the JVM crashes is small since the 
+data is typically replicated to other nodes immediately according to the given ``WriteConsistency``.
 
   akka.cluster.distributed-data.mapdb.commit-interval = 200 ms
 
-You can set this property to ``off`` to commit each write immediately, i.e. it has been flushed
-to disk before the ``UpdateSuccess`` reply is sent. This is rather slow but the safe option if 
-the data must never be lost silently. 
-
-Note that if when using ``commit-interval=off`` you should be prepared to receive ``WriteFailure`` 
-as reply to an ``Update`` of a durable entry if the data could not be stored for some reason. 
-When using time based commits such errors will only be logged and ``UpdateSuccess`` will still 
-be the reply to the ``Update``.
+Note that you should be prepared to receive ``WriteFailure`` as reply to an ``Update`` of a 
+durable entry if the data could not be stored for some reason. When enabling ``write-behind-interval``
+such errors will only be logged and ``UpdateSuccess`` will still be the reply to the ``Update``.
 
 CRDT Garbage
 ------------
