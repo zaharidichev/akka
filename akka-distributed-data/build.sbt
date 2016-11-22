@@ -7,3 +7,5 @@ OSGi.distributedData
 Dependencies.distributedData
 
 enablePlugins(MultiNodeScalaTest)
+
+version := "2.4-DDATA-20161122-1"
