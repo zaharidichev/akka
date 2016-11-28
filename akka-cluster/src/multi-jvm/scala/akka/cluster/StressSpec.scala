@@ -81,7 +81,7 @@ private[cluster] object StressMultiJvmSpec extends MultiNodeConfig {
   // not MultiNodeClusterSpec.clusterConfig
   commonConfig(ConfigFactory.parseString("""
     akka.test.cluster-stress-spec {
-      infolog = off
+      infolog = on
       # scale the nr-of-nodes* settings with this factor
       nr-of-nodes-factor = 1
       # not scaled
@@ -130,11 +130,13 @@ private[cluster] object StressMultiJvmSpec extends MultiNodeConfig {
       failure-detector.acceptable-heartbeat-pause =  10s
       auto-down-unreachable-after = 1s
       publish-stats-interval = 1s
+      debug.verbose-heartbeat-logging = on
     }
     akka.loggers = ["akka.testkit.TestEventListener"]
-    akka.loglevel = INFO
+    akka.loglevel = DEBUG
     akka.remote.log-remote-lifecycle-events = off
 
+    akka.remote.artery.enabled = on
     akka.remote.artery.advanced {
       idle-cpu-level = 1
       embedded-media-driver = off
@@ -1152,8 +1154,6 @@ abstract class StressSpec
   }
 
   "A cluster under stress" must {
-
-    if (isArteryEnabled) pending
 
     "log settings" taggedAs LongRunningTest in {
       if (infolog) {
