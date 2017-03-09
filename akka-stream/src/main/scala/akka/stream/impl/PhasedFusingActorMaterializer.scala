@@ -19,8 +19,11 @@ import scala.collection.immutable.Map
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.util.Random
+import java.util.concurrent.atomic.AtomicInteger
 
 object PhasedFusingActorMaterializer {
+
+  val nameCounter = new AtomicInteger
 
   val Debug = false
 
@@ -38,8 +41,7 @@ object PhasedFusingActorMaterializer {
       override def apply(settings: ActorMaterializerSettings, materializer: PhasedFusingActorMaterializer): PhaseIsland[Any] =
         new SourceModulePhase(materializer).asInstanceOf[PhaseIsland[Any]]
     },
-    GraphStageTag → DefaultPhase
-  )
+    GraphStageTag → DefaultPhase)
 
   def apply(settings: ActorMaterializerSettings)(implicit context: ActorRefFactory): ActorMaterializer = {
     val haveShutDown = new AtomicBoolean(false)
@@ -100,8 +102,7 @@ class IslandTracking(
   val phases:       Map[IslandTag, Phase[Any]],
   val settings:     ActorMaterializerSettings,
   defaultPhase:     Phase[Any],
-  val materializer: PhasedFusingActorMaterializer
-) {
+  val materializer: PhasedFusingActorMaterializer) {
 
   import PhasedFusingActorMaterializer.Debug
 
@@ -130,8 +131,7 @@ class IslandTracking(
         length = currentGlobalOffset - currentSegmentGlobalOffset,
         globalBaseOffset = currentSegmentGlobalOffset,
         relativeBaseOffset = currentSegmentGlobalOffset - currentIslandGlobalOffset - currentIslandSkippetSlots,
-        currentPhase
-      )
+        currentPhase)
 
       // Segment tracking is by demand, we only allocate this list if it is used.
       // If there are no islands, then there is no need to track segments
@@ -275,8 +275,7 @@ class IslandTracking(
         from = out,
         toGlobalOffset = absoluteOffset,
         logic,
-        currentPhase
-      )
+        currentPhase)
 
       if (Debug) println(s"    wiring is forward, recording $forwardWire")
       forwardWires.add(forwardWire)
@@ -292,8 +291,7 @@ case class PhasedFusingActorMaterializer(
   dispatchers:           Dispatchers,
   supervisor:            ActorRef,
   haveShutDown:          AtomicBoolean,
-  flowNames:             SeqActorName
-) extends ExtendedActorMaterializer {
+  flowNames:             SeqActorName) extends ExtendedActorMaterializer {
   import PhasedFusingActorMaterializer._
 
   private val _logger = Logging.getLogger(system, this)
@@ -364,8 +362,7 @@ case class PhasedFusingActorMaterializer(
       subflowFuser,
       initialAttributes,
       PhasedFusingActorMaterializer.DefaultPhase,
-      PhasedFusingActorMaterializer.DefaultPhases
-    )
+      PhasedFusingActorMaterializer.DefaultPhases)
   }
 
   def materialize[Mat](
@@ -373,8 +370,7 @@ case class PhasedFusingActorMaterializer(
     subflowFuser:      GraphInterpreterShell ⇒ ActorRef,
     initialAttributes: Attributes,
     defaultPhase:      Phase[Any],
-    phases:            Map[IslandTag, Phase[Any]]
-  ): Mat = {
+    phases:            Map[IslandTag, Phase[Any]]): Mat = {
     val islandTracking = new IslandTracking(phases, settings, defaultPhase, this)
 
     var current: Traversal = graph.traversalBuilder.traversal
@@ -500,8 +496,7 @@ object GraphStageTag extends IslandTag
 
 final class GraphStageIsland(
   settings:     ActorMaterializerSettings,
-  materializer: PhasedFusingActorMaterializer
-) extends PhaseIsland[GraphStageLogic] {
+  materializer: PhasedFusingActorMaterializer) extends PhaseIsland[GraphStageLogic] {
   // TODO: remove these
   private val logicArrayType = Array.empty[GraphStageLogic]
   private[this] val logics = new ArrayList[GraphStageLogic](64)
@@ -621,7 +616,7 @@ final class GraphStageIsland(
     //    } else {
     val props = ActorGraphInterpreter.props(shell)
     // TODO: actor names
-    materializer.actorOf(props, "fused" + Random.nextInt(), settings.dispatcher)
+    materializer.actorOf(props, "fused" + PhasedFusingActorMaterializer.nameCounter.incrementAndGet(), settings.dispatcher)
     //    }
 
   }
@@ -636,7 +631,7 @@ final class SourceModulePhase(materializer: PhasedFusingActorMaterializer) exten
 
   override def materializeAtomic(mod: AtomicModule[Shape, Any], attributes: Attributes): (Publisher[Any], Any) = {
     // TODO: proper stage name
-    mod.asInstanceOf[SourceModule[Any, Any]].create(MaterializationContext(materializer, attributes, "stageName"))
+    mod.asInstanceOf[SourceModule[Any, Any]].create(MaterializationContext(materializer, attributes, "stageName" + PhasedFusingActorMaterializer.nameCounter.incrementAndGet()))
   }
 
   override def assignPort(in: InPort, slot: Int, logic: Publisher[Any]): Unit = ()
@@ -660,7 +655,7 @@ final class SinkModulePhase(materializer: PhasedFusingActorMaterializer) extends
   override def materializeAtomic(mod: AtomicModule[Shape, Any], attributes: Attributes): (AnyRef, Any) = {
     // TODO: proper stage name
     val subAndMat =
-      mod.asInstanceOf[SinkModule[Any, Any]].create(MaterializationContext(materializer, attributes, "stageName"))
+      mod.asInstanceOf[SinkModule[Any, Any]].create(MaterializationContext(materializer, attributes, "stageName" + PhasedFusingActorMaterializer.nameCounter.incrementAndGet()))
 
     subscriberOrVirtualPublisher = subAndMat._1
     (subscriberOrVirtualPublisher, subAndMat._2)
