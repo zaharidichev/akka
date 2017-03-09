@@ -1,0 +1,123 @@
+*** akka.stream.MaterializationBenchmark
+
+jmh:run -prof gc -i 10 -wi 4 -f3 -t1 -p complexity=10 akka.stream.MaterializationBenchmark
+
+* baseline wip-stream-bench-baseline-patriknw 7a09bec
+
+[info] Benchmark                                                                           (complexity)   Mode  Cnt       Score       Error   Units
+[info] MaterializationBenchmark.flow_with_map                                                        10  thrpt   30  136679.290 ± 13740.164   ops/s
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate                                         10  thrpt   30    1670.487 ±   169.237  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate.norm                                    10  thrpt   30   12852.873 ±   141.925    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space                                10  thrpt   30    1676.292 ±   212.379  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space.norm                           10  thrpt   30   12856.012 ±   691.562    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space                            10  thrpt   30       3.343 ±     1.248  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space.norm                       10  thrpt   30      26.028 ±     9.962    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.count                                              10  thrpt   30     176.000              counts
+[info] MaterializationBenchmark.flow_with_map:·gc.time                                               10  thrpt   30     243.000                  ms
+[info] MaterializationBenchmark.graph_with_imported_flow                                             10  thrpt   20  132249.980 ± 16875.459   ops/s
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate                              10  thrpt   20    1675.246 ±   225.113  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate.norm                         10  thrpt   20   13295.733 ±   156.116    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space                     10  thrpt   20    1681.411 ±   313.767  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space.norm                10  thrpt   20   13270.881 ±  1342.082    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space                 10  thrpt   20       2.850 ±     1.676  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space.norm            10  thrpt   20      23.079 ±    14.306    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.count                                   10  thrpt   20      93.000              counts
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.time                                    10  thrpt   20     135.000                  ms
+[info] MaterializationBenchmark.graph_with_junctions                                                 10  thrpt   30  102068.219 ±  7288.922   ops/s
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate                                  10  thrpt   30    1728.466 ±   122.860  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate.norm                             10  thrpt   30   17804.856 ±   116.171    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space                         10  thrpt   30    1721.763 ±   158.434  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space.norm                    10  thrpt   30   17745.606 ±  1211.812    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space                     10  thrpt   30       1.923 ±     1.056  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space.norm                10  thrpt   30      19.563 ±    10.768    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.count                                       10  thrpt   30     143.000              counts
+[info] MaterializationBenchmark.graph_with_junctions:·gc.time                                        10  thrpt   30     190.000                  ms
+
+* baseline wip-stream-bench-baseline-patriknw 
+4b24e45 2017-03-09 | unique act name
+9bbb28d 2017-03-09 | jmh Blackhole
+
+[info] Benchmark                                                                            (complexity)   Mode  Cnt       Score       Error   Units
+[info] MaterializationBenchmark.flow_with_map                                                         10  thrpt   30  145390.426 ± 16402.692   ops/s
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate                                          10  thrpt   30    1775.169 ±   199.052  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate.norm                                     10  thrpt   30   12839.454 ±   177.728    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space                                 10  thrpt   30    1794.688 ±   214.028  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space.norm                            10  thrpt   30   13014.587 ±   803.963    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space                             10  thrpt   30       3.525 ±     1.554  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space.norm                        10  thrpt   30      25.653 ±    11.179    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.count                                               10  thrpt   30     168.000              counts
+[info] MaterializationBenchmark.flow_with_map:·gc.time                                                10  thrpt   30     227.000                  ms
+[info] MaterializationBenchmark.graph_with_imported_flow                                              10  thrpt   30  138821.421 ± 16721.825   ops/s
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate                               10  thrpt   30    1754.113 ±   215.304  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate.norm                          10  thrpt   30   13279.646 ±   157.428    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space                      10  thrpt   30    1787.623 ±   226.349  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space.norm                 10  thrpt   30   13542.188 ±   623.206    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space                  10  thrpt   30       4.203 ±     1.797  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space.norm             10  thrpt   30      32.501 ±    15.649    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.count                                    10  thrpt   30     174.000              counts
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.time                                     10  thrpt   30     231.000                  ms
+[info] MaterializationBenchmark.graph_with_junctions                                                  10  thrpt   30  100654.854 ±  9545.731   ops/s
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate                                   10  thrpt   30    1694.049 ±   160.275  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate.norm                              10  thrpt   30   17694.461 ±   108.526    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space                          10  thrpt   30    1713.947 ±   215.556  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space.norm                     10  thrpt   30   17830.631 ±  1184.043    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space                      10  thrpt   30       2.810 ±     1.505  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space.norm                 10  thrpt   30      28.682 ±    15.486    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.count                                        10  thrpt   30     183.000              counts
+[info] MaterializationBenchmark.graph_with_junctions:·gc.time                                         10  thrpt   30     219.000                  ms
+[info] MaterializationBenchmark.graph_with_nested_imports                                             10  thrpt   30  177410.660 ± 53916.394   ops/s
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.alloc.rate                              10  thrpt   30    2042.404 ±   566.481  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.alloc.rate.norm                         10  thrpt   30   13198.299 ±  2494.024    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Eden_Space                     10  thrpt   30    1982.091 ±   688.761  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Eden_Space.norm                10  thrpt   30   12463.514 ±  3633.384    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Old_Gen                        10  thrpt   30      24.094 ±    31.462  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Old_Gen.norm                   10  thrpt   30     262.204 ±   318.487    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Survivor_Space                 10  thrpt   30      20.451 ±    22.845  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Survivor_Space.norm            10  thrpt   30     262.257 ±   365.082    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.count                                   10  thrpt   30      78.000              counts
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.time                                    10  thrpt   30    8354.000                  ms
+
+* wip-stream-bench-patriknw 84d6c40
+wip-traversal-oriented-layout-drewhk HEAD 
+84d6c40 2017-03-09 | jmh Blackhole
+
+[info] Benchmark                                                                            (complexity)   Mode  Cnt       Score       Error   Units
+[info] MaterializationBenchmark.flow_with_map                                                         10  thrpt   30  120958.726 ± 10085.654   ops/s
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate                                          10  thrpt   30    1752.772 ±   151.238  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.alloc.rate.norm                                     10  thrpt   30   15269.775 ±   194.199    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space                                 10  thrpt   30    1777.141 ±   223.097  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Eden_Space.norm                            10  thrpt   30   15473.434 ±  1494.772    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space                             10  thrpt   30       3.184 ±     1.893  MB/sec
+[info] MaterializationBenchmark.flow_with_map:·gc.churn.PS_Survivor_Space.norm                        10  thrpt   30      28.981 ±    17.927    B/op
+[info] MaterializationBenchmark.flow_with_map:·gc.count                                               10  thrpt   30     114.000              counts
+[info] MaterializationBenchmark.flow_with_map:·gc.time                                                10  thrpt   30     198.000                  ms
+[info] MaterializationBenchmark.graph_with_imported_flow                                              10  thrpt   30  126415.753 ± 10696.438   ops/s
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate                               10  thrpt   30    1876.882 ±   163.812  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.alloc.rate.norm                          10  thrpt   30   15600.886 ±   120.160    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space                      10  thrpt   30    1904.867 ±   229.584  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Eden_Space.norm                 10  thrpt   30   15798.293 ±  1184.653    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space                  10  thrpt   30       3.099 ±     1.804  MB/sec
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.churn.PS_Survivor_Space.norm             10  thrpt   30      26.003 ±    15.475    B/op
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.count                                    10  thrpt   30     144.000              counts
+[info] MaterializationBenchmark.graph_with_imported_flow:·gc.time                                     10  thrpt   30     204.000                  ms
+[info] MaterializationBenchmark.graph_with_junctions                                                  10  thrpt   30   86000.002 ±  3872.011   ops/s
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate                                   10  thrpt   30    1644.047 ±    73.770  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.alloc.rate.norm                              10  thrpt   30   20182.824 ±   150.749    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space                          10  thrpt   30    1646.461 ±   140.509  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Eden_Space.norm                     10  thrpt   30   20177.859 ±  1263.628    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space                      10  thrpt   30       2.110 ±     1.355  MB/sec
+[info] MaterializationBenchmark.graph_with_junctions:·gc.churn.PS_Survivor_Space.norm                 10  thrpt   30      26.342 ±    17.453    B/op
+[info] MaterializationBenchmark.graph_with_junctions:·gc.count                                        10  thrpt   30     179.000              counts
+[info] MaterializationBenchmark.graph_with_junctions:·gc.time                                         10  thrpt   30     199.000                  ms
+[info] MaterializationBenchmark.graph_with_nested_imports                                             10  thrpt   30  203918.080 ± 37520.359   ops/s
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.alloc.rate                              10  thrpt   30    2450.196 ±   405.456  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.alloc.rate.norm                         10  thrpt   30   12867.844 ±   753.015    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Eden_Space                     10  thrpt   30    2447.694 ±   439.066  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Eden_Space.norm                10  thrpt   30   12987.904 ±  2089.308    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Old_Gen                        10  thrpt   30       4.792 ±    12.855  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Old_Gen.norm                   10  thrpt   30      41.405 ±   105.846    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Survivor_Space                 10  thrpt   30       8.676 ±    11.298  MB/sec
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.churn.PS_Survivor_Space.norm            10  thrpt   30      67.529 ±   120.008    B/op
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.count                                   10  thrpt   30     132.000              counts
+[info] MaterializationBenchmark.graph_with_nested_imports:·gc.time                                    10  thrpt   30    1067.000                  ms
+
