@@ -175,10 +175,11 @@ private[stream] object ConnectionSourceStage {
     def halfClose: Boolean
   }
   case class Outbound(
-    manager:             ActorRef,
-    connectCmd:          Connect,
-    localAddressPromise: Promise[InetSocketAddress],
-    halfClose:           Boolean) extends TcpRole
+    manager:              ActorRef,
+    connectCmd:           Connect,
+    localAddressPromise:  Promise[InetSocketAddress],
+    halfClose:            Boolean,
+    keepOpenOnPeerClosed: Boolean) extends TcpRole
   case class Inbound(connection: ActorRef, halfClose: Boolean) extends TcpRole
 
   /*
@@ -203,13 +204,13 @@ private[stream] object ConnectionSourceStage {
     override def preStart(): Unit = {
       setKeepGoing(true)
       role match {
-        case Inbound(conn, _) ⇒
+        case Inbound(conn, halfClose) ⇒
           setHandler(bytesOut, readHandler)
           connection = conn
           getStageActor(connected).watch(connection)
-          connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
+          connection ! Register(self, keepOpenOnPeerClosed = halfClose, useResumeWriting = false)
           pull(bytesIn)
-        case ob @ Outbound(manager, cmd, _, _) ⇒
+        case ob @ Outbound(manager, cmd, _, _, _) ⇒
           getStageActor(connecting(ob)).watch(manager)
           manager ! cmd
       }
@@ -222,13 +223,13 @@ private[stream] object ConnectionSourceStage {
         case Terminated(_)      ⇒ failStage(new StreamTcpException("The IO manager actor (TCP) has terminated. Stopping now."))
         case CommandFailed(cmd) ⇒ failStage(new StreamTcpException(s"Tcp command [$cmd] failed"))
         case c: Connected ⇒
-          role.asInstanceOf[Outbound].localAddressPromise.success(c.localAddress)
+          ob.localAddressPromise.success(c.localAddress)
           connection = sender
           setHandler(bytesOut, readHandler)
           stageActor.unwatch(ob.manager)
           stageActor.become(connected)
           stageActor.watch(connection)
-          connection ! Register(self, keepOpenOnPeerClosed = true, useResumeWriting = false)
+          connection ! Register(self, keepOpenOnPeerClosed = ob.keepOpenOnPeerClosed, useResumeWriting = false)
           if (isAvailable(bytesOut)) connection ! ResumeReading
           pull(bytesIn)
       }
@@ -299,7 +300,7 @@ private[stream] object ConnectionSourceStage {
     })
 
     override def postStop(): Unit = role match {
-      case Outbound(_, _, localAddressPromise, _) ⇒
+      case Outbound(_, _, localAddressPromise, _, _) ⇒
         // Fail if has not been completed with an address earlier
         localAddressPromise.tryFailure(new StreamTcpException("Connection failed."))
       case _ ⇒ // do nothing...
@@ -335,12 +336,13 @@ private[stream] object ConnectionSourceStage {
  * INTERNAL API
  */
 @InternalApi private[stream] class OutgoingConnectionStage(
-  manager:        ActorRef,
-  remoteAddress:  InetSocketAddress,
-  localAddress:   Option[InetSocketAddress]           = None,
-  options:        immutable.Traversable[SocketOption] = Nil,
-  halfClose:      Boolean                             = true,
-  connectTimeout: Duration                            = Duration.Inf)
+  manager:              ActorRef,
+  remoteAddress:        InetSocketAddress,
+  localAddress:         Option[InetSocketAddress]           = None,
+  options:              immutable.Traversable[SocketOption] = Nil,
+  halfClose:            Boolean                             = true,
+  keepOpenOnPeerClosed: Boolean                             = false,
+  connectTimeout:       Duration                            = Duration.Inf)
 
   extends GraphStageWithMaterializedValue[FlowShape[ByteString, ByteString], Future[StreamTcp.OutgoingConnection]] {
   import TcpConnectionStage._
@@ -362,7 +364,8 @@ private[stream] object ConnectionSourceStage {
       manager,
       Connect(remoteAddress, localAddress, options, connTimeout, pullMode = true),
       localAddressPromise,
-      halfClose),
+      halfClose,
+      keepOpenOnPeerClosed),
       remoteAddress)
 
     (logic, localAddressPromise.future.map(OutgoingConnection(remoteAddress, _))(ExecutionContexts.sameThreadExecutionContext))
