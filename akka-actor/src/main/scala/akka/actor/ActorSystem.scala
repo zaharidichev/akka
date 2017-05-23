@@ -354,6 +354,9 @@ object ActorSystem {
     final val DebugEventStream: Boolean = getBoolean("akka.actor.debug.event-stream")
     final val DebugUnhandledMessage: Boolean = getBoolean("akka.actor.debug.unhandled")
     final val DebugRouterMisconfiguration: Boolean = getBoolean("akka.actor.debug.router-misconfiguration")
+    final val ThreadFactory: String = {
+      config.getString("akka.actor.thread-factory")
+    }
 
     final val Home: Option[String] = config.getString("akka.home") match {
       case "" ⇒ None
@@ -686,8 +689,10 @@ private[akka] class ActorSystemImpl(
       }
     }
 
-  final val threadFactory: MonitorableThreadFactory =
-    MonitorableThreadFactory(name, settings.Daemonicity, Option(classLoader), uncaughtExceptionHandler)
+  final val threadFactory: MonitorableThreadFactory = settings.ThreadFactory match {
+    case "with-affinity" ⇒ AffinityThreadFactoryImpl(name, settings.Daemonicity, Option(classLoader), uncaughtExceptionHandler)
+    case _               ⇒ MonitorableThreadFactoryImpl(name, settings.Daemonicity, Option(classLoader), uncaughtExceptionHandler)
+  }
 
   /**
    * This is an extension point: by overriding this method, subclasses can

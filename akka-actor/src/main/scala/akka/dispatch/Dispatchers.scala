@@ -281,8 +281,7 @@ class BalancingDispatcherConfigurator(_config: Config, _prerequisites: Dispatche
  * Returns new dispatcher instance for for each invocation
  * of the `dispatcher()` method.
  */
-class PinnedDispatcherConfigurator(config: Config, prerequisites: DispatcherPrerequisites)
-  extends MessageDispatcherConfigurator(config, prerequisites) {
+class PinnedDispatcherConfigurator(config: Config, prerequisites: DispatcherPrerequisites) extends MessageDispatcherConfigurator(config, prerequisites) {
 
   private val threadPoolConfig: ThreadPoolConfig = configureExecutor() match {
     case e: ThreadPoolExecutorConfigurator ⇒ e.threadPoolConfig

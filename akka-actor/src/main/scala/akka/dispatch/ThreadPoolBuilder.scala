@@ -5,23 +5,14 @@
 package akka.dispatch
 
 import java.util.Collection
+
 import scala.concurrent.{ BlockContext, CanAwait }
 import scala.concurrent.duration.Duration
 import akka.dispatch.forkjoin._
-import java.util.concurrent.{
-  ArrayBlockingQueue,
-  BlockingQueue,
-  Callable,
-  ExecutorService,
-  LinkedBlockingQueue,
-  RejectedExecutionHandler,
-  RejectedExecutionException,
-  SynchronousQueue,
-  TimeUnit,
-  ThreadFactory,
-  ThreadPoolExecutor
-}
-import java.util.concurrent.atomic.{ AtomicReference, AtomicLong }
+import java.util.concurrent.{ ArrayBlockingQueue, BlockingQueue, Callable, ExecutorService, LinkedBlockingQueue, RejectedExecutionException, RejectedExecutionHandler, SynchronousQueue, ThreadFactory, ThreadPoolExecutor, TimeUnit }
+import java.util.concurrent.atomic.{ AtomicLong, AtomicReference }
+
+import net.openhft.affinity.{ AffinityStrategies, AffinityStrategy }
 
 object ThreadPoolConfig {
   type QueueFactory = () ⇒ BlockingQueue[Runnable]
@@ -174,13 +165,65 @@ object MonitorableThreadFactory {
   }
 }
 
-final case class MonitorableThreadFactory(
-  name:                  String,
-  daemonic:              Boolean,
-  contextClassLoader:    Option[ClassLoader],
-  exceptionHandler:      Thread.UncaughtExceptionHandler = MonitorableThreadFactory.doNothing,
-  protected val counter: AtomicLong                      = new AtomicLong)
-  extends ThreadFactory with ForkJoinPool.ForkJoinWorkerThreadFactory {
+abstract class MonitorableThreadFactory extends ThreadFactory {
+
+  def name: String
+  def daemonic: Boolean
+  def contextClassLoader: Option[ClassLoader]
+  def exceptionHandler: Thread.UncaughtExceptionHandler
+
+  def newThread(pool: ForkJoinPool): ForkJoinWorkerThread
+  def newThread(runnable: Runnable): Thread
+  def withName(newName: String): MonitorableThreadFactory
+
+}
+
+final case class AffinityThreadFactoryImpl(
+  override val name:               String,
+  override val daemonic:           Boolean,
+  override val contextClassLoader: Option[ClassLoader],
+  override val exceptionHandler:   Thread.UncaughtExceptionHandler = MonitorableThreadFactory.doNothing,
+  protected val counter:           AtomicLong                      = new AtomicLong)
+  extends MonitorableThreadFactory with ForkJoinPool.ForkJoinWorkerThreadFactory {
+
+  import net.openhft.affinity.AffinityLock
+  println("Constructing affinity factory")
+  private var lastAffinityLock: AffinityLock = null
+
+  def newThread(pool: ForkJoinPool): ForkJoinWorkerThread = ???
+
+  def newThread(runnable: Runnable): Thread = {
+    import net.openhft.affinity.AffinityLock
+    val t = new Thread(new Runnable() {
+      override def run(): Unit = {
+        val al = if (lastAffinityLock == null) AffinityLock.acquireLock
+        else lastAffinityLock.acquireLock(AffinityStrategies.SAME_CORE)
+        try {
+          if (al.cpuId >= 0) lastAffinityLock = al
+          runnable.run
+        } finally al.release()
+      }
+    })
+    wire(t)
+  }
+
+  def withName(newName: String): MonitorableThreadFactory = copy(newName)
+
+  protected def wire[T <: Thread](t: T): T = {
+    t.setUncaughtExceptionHandler(exceptionHandler)
+    t.setDaemon(daemonic)
+    contextClassLoader foreach t.setContextClassLoader
+    t
+  }
+}
+
+final case class MonitorableThreadFactoryImpl(
+  override val name:               String,
+  override val daemonic:           Boolean,
+  override val contextClassLoader: Option[ClassLoader],
+  override val exceptionHandler:   Thread.UncaughtExceptionHandler = MonitorableThreadFactory.doNothing,
+  protected val counter:           AtomicLong                      = new AtomicLong)
+  extends MonitorableThreadFactory with ForkJoinPool.ForkJoinWorkerThreadFactory {
 
   def newThread(pool: ForkJoinPool): ForkJoinWorkerThread = {
     val t = wire(new MonitorableThreadFactory.AkkaForkJoinWorkerThread(pool))
