@@ -158,24 +158,28 @@ object StreamRefsSpec {
     val address = SocketUtil.temporaryServerAddress()
     ConfigFactory.parseString(
       s"""
-    akka {
-      loglevel = INFO
-
-      actor {
-        provider = remote
-        serialize-messages = off
-      }
-
-      remote.netty.tcp {
-        port = ${address.getPort}
-        hostname = "${address.getHostName}"
-      }
-
-      stream.materializer.stream-ref {
-        subscription-timeout = 3 seconds
-      }
-    }
-  """).withFallback(ConfigFactory.load())
+         |akka {
+         |  loglevel = ERROR
+         |
+         |  actor {
+         |    provider = remote
+         |    serialize-messages = off
+         |  }
+         |  remote {
+         |     artery {
+         |       enabled = on
+         |       transport = aeron-udp
+         |       canonical.hostname = "${address.getHostName}"
+         |       canonical.port =  ${address.getPort}
+         |       log-received-messages = on
+         |       log-sent-messages = on
+         |     }
+         |   }
+         |  stream.materializer.stream-ref {
+         |    subscription-timeout = 3 seconds
+         |  }
+         |}
+       """.stripMargin).withFallback(ConfigFactory.load())
   }
 }
 
